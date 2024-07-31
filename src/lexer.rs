@@ -40,6 +40,7 @@ pub enum TokenType {
     Identifier,
     Quotes,
     Number,
+    Boolean,
 
     Unknown,
     EOF,
@@ -109,7 +110,6 @@ impl Lexer {
             '+' => self.add_token_without_literal(TokenType::Add),
             '-' => self.add_token_without_literal(TokenType::Subtract),
             '*' => self.add_token_without_literal(TokenType::Multiply),
-            '/' => self.add_token_without_literal(TokenType::Divide),
             '%' => self.add_token_without_literal(TokenType::Modulus),
             '^' => self.add_token_without_literal(TokenType::Power),
             '&' => self.add_token_without_literal(TokenType::And),
@@ -145,6 +145,15 @@ impl Lexer {
                     TokenType::LessThan
                 };
                 self.add_token_without_literal(token)
+            }
+            '/' => {
+                if self.expect('/') {
+                    while self.peek() != '\n' && !self.eof() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token_without_literal(TokenType::Divide);
+                };
             }
 
             ' ' | '\n' | '\r' | '\t' => {}
@@ -256,11 +265,19 @@ impl Lexer {
             "const" => TokenType::Constant,
             "fn" => TokenType::Function,
 
+            "true" | "false" => TokenType::Boolean,
+
             _ => TokenType::Identifier,
         };
 
         if token_type == TokenType::Identifier {
             self.add_token_with_literal(token_type, Literal::String(literal.to_string()));
+        } else if token_type == TokenType::Boolean {
+            self.add_token_with_literal(token_type, match literal {
+                "true" => Literal::Bool(true),
+                "false" => Literal::Bool(false),
+                _ => panic!(""),
+            })
         } else {
             self.add_token_without_literal(token_type);
         }
